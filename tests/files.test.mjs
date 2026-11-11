@@ -68,16 +68,35 @@ describe('the templates', () => {
     assert.equal(read('templates/spec-guard.json'), read('fixture/.spec-guard.json'));
   });
 
-  test('pin each action to a commit, with the version beside it, as every workflow here does', () => {
+  test('pin each action to a commit, with the version beside it, as every workflow and action here does', () => {
+    const actions = files.filter((file) => /^\.github\/actions\/[a-z-]+\/action\.yml$/.test(file));
     const workflows = ['templates/spec-family.yml', ...files.filter((file) => file.startsWith('.github/workflows/'))];
-    assert.ok(workflows.length >= 4, workflows.join(', '));
-    for (const file of workflows) {
+    assert.ok(workflows.length >= 4 && actions.length >= 1, [...workflows, ...actions].join(', '));
+    for (const file of [...workflows, ...actions]) {
       const uses = [...read(file).matchAll(/uses: (.+)$/gm)].map((match) => match[1]);
-      assert.ok(uses.length >= 2, file);
-      for (const use of uses) assert.match(use, /^[a-z-]+\/[a-z-]+@[0-9a-f]{40} # v[0-9]+\.[0-9]+\.[0-9]+$/, `${file}: ${use}`);
+      assert.ok(uses.length >= 1, file);
+      for (const use of uses) {
+        const local = /^\.\/(\.github\/actions\/[a-z-]+)$/.exec(use);
+        if (local !== null) assert.ok(actions.includes(`${local[1]}/action.yml`), `${file}: ${use} is no action here`);
+        else assert.match(use, /^[a-z-]+\/[a-z-]+@[0-9a-f]{40} # v[0-9]+\.[0-9]+\.[0-9]+$/, `${file}: ${use}`);
+      }
+    }
+    for (const file of workflows) {
       assert.match(read(file), /^permissions:\n {2}contents: read$/m, `${file} reads the repository and no more, by default`);
       for (const [, label] of read(file).matchAll(/runs-on: (.+)$/gm)) assert.equal(label, 'ubuntu-24.04', file);
     }
+  });
+
+  test('give contents: write to the job that makes the release, and to no other', () => {
+    const writes = [];
+    for (const file of files.filter((path) => path.startsWith('.github/'))) {
+      const text = read(file);
+      for (const match of text.matchAll(/contents: write/g)) {
+        const job = [...text.slice(0, match.index).matchAll(/^ {2}([a-z-]+):$/gm)].at(-1)?.[1];
+        writes.push(`${file}#${job}`);
+      }
+    }
+    assert.deepEqual(writes, ['.github/workflows/release.yml#github-release']);
   });
 
   test('run each tool from the project, never by a bare name', () => {
@@ -163,9 +182,21 @@ describe('the release', () => {
   });
 
   test('is installed in CI into the Spec Kit release the manifest asks for at least', () => {
-    const pinned = read('.github/workflows/install.yml').match(/SPECKIT_COMMIT: ([0-9a-f]{40}) # v([0-9]+\.[0-9]+\.[0-9]+)$/m);
-    assert.ok(pinned, 'install.yml pins Spec Kit by a commit, with its tag beside it');
+    const pinned = read('.github/actions/scratch-project/action.yml').match(/SPECKIT_COMMIT: ([0-9a-f]{40}) # v([0-9]+\.[0-9]+\.[0-9]+)$/m);
+    assert.ok(pinned, 'the scratch-project action pins Spec Kit by a commit, with its tag beside it');
     assert.ok(manifest.requires.speckit_version.startsWith(`>=${pinned[2]},`), manifest.requires.speckit_version);
+    for (const file of ['.github/workflows/install.yml', '.github/workflows/release.yml']) {
+      assert.match(read(file), /uses: \.\/\.github\/actions\/scratch-project$/m, `${file} makes its project with the shared action`);
+      assert.doesNotMatch(read(file), /SPECKIT_COMMIT|setup-uv/, `${file} pins no Spec Kit or uv of its own`);
+    }
+  });
+
+  test('waits, in release.yml, on installing from the tag\'s own archive', () => {
+    const release = read('.github/workflows/release.yml');
+    assert.match(release, /^ {4}needs: \[verify, install\]$/m);
+    assert.ok(release.includes('https://github.com/$GITHUB_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.zip'));
+    assert.match(release, /node scripts\/check-install\.mjs "\$RUNNER_TEMP\/scratch" copilot/);
+    assert.match(release, /node scripts\/run-commands\.mjs "\$RUNNER_TEMP\/scratch"/);
   });
 
   test('leaves the development files out of the installed copy', () => {

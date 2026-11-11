@@ -3,7 +3,9 @@ name: install
 # Installs this extension into a project made by Spec Kit's own CLI, the way
 # a user would, and fails unless the commands, templates and hooks land where
 # Spec Kit puts them. Python runs here only inside Spec Kit's CLI, which uv
-# installs on the runner; the checks are this repository's Node scripts.
+# installs on the runner (.github/actions/scratch-project); the checks are
+# this repository's Node scripts. release.yml runs the same checks on the
+# tag's own archive before a release is made.
 
 on:
   pull_request:
@@ -32,10 +34,6 @@ jobs:
             options: --integration-options="--commands-dir .agent/commands"
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    env:
-      # Spec Kit v1.4.0, the release whose rules scripts/check-manifest.mjs
-      # mirrors, by the commit its tag names.
-      SPECKIT_COMMIT: 0019fa14d12f45edabc2cc3176c9168a68bd0f97 # v1.4.0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -44,22 +42,10 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: ./.github/actions/scratch-project
         with:
-          version: '0.13.6'
-          checksum: 'f29c3e94ffabd7e6f3ba521dba169a9b7ec12100bf3257087f0f24f6123f3645'
-          enable-cache: false
-
-      - name: Spec Kit's CLI, from the commit of its v1.4.0 tag
-        run: |
-          uv tool install specify-cli --from "git+https://github.com/github/spec-kit.git@$SPECKIT_COMMIT"
-          uv tool dir --bin >> "$GITHUB_PATH"
-          "$(uv tool dir --bin)/specify" version | tee "$RUNNER_TEMP/specify-version.txt"
-          grep -q '1\.4\.0' "$RUNNER_TEMP/specify-version.txt"
-
-      - name: A scratch project, made by specify init
-        working-directory: ${{ runner.temp }}
-        run: specify init scratch --non-interactive --ignore-agent-tools --script sh --integration ${{ matrix.integration }} ${{ matrix.options }}
+          integration: ${{ matrix.integration }}
+          options: ${{ matrix.options }}
 
       - name: Install the extension from an archive made as GitHub makes a tag's, by URL
         if: matrix.source == 'release archive'

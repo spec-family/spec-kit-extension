@@ -4,7 +4,7 @@ All notable changes to this extension are documented here. The version is
 `extension.yml`'s, and each release is the tag `v<version>`, whose archive is
 what Spec Kit installs.
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-11-11
 
 ### Added
 
@@ -28,4 +28,5 @@ what Spec Kit installs.
   them, and unless every check the commands run passes in that project.
 - **Releases.** A `v<version>` tag on `main` whose version and dated
   CHANGELOG section agree with `extension.yml` makes the GitHub release, with
-  that section as its notes.
+  that section as its notes, once Spec Kit's CLI has installed the extension
+  from the tag's own archive URL and the same checks have passed on it.
