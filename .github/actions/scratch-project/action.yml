@@ -1,0 +1,51 @@
+name: A project made by Spec Kit 1.4.0
+description: >-
+  Installs Spec Kit's specify CLI 1.4.0 with uv, from the commit its v1.4.0
+  tag names, and makes a scratch project with specify init. Python runs only
+  inside that CLI, on the runner. Both install.yml and release.yml use this,
+  so the Spec Kit they test against is pinned in one place.
+
+inputs:
+  integration:
+    description: The integration specify init sets up, such as copilot or generic.
+    required: true
+  options:
+    description: More options for specify init, as written on its command line.
+    required: false
+    default: ''
+
+outputs:
+  project:
+    description: The scratch project's directory.
+    value: ${{ steps.init.outputs.project }}
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      with:
+        version: '0.13.6'
+        checksum: 'f29c3e94ffabd7e6f3ba521dba169a9b7ec12100bf3257087f0f24f6123f3645'
+        enable-cache: false
+
+    - name: Spec Kit's CLI, from the commit of its v1.4.0 tag
+      shell: bash
+      env:
+        # Spec Kit v1.4.0, the release whose rules scripts/check-manifest.mjs
+        # mirrors, by the commit its tag names.
+        SPECKIT_COMMIT: 0019fa14d12f45edabc2cc3176c9168a68bd0f97 # v1.4.0
+      run: |
+        uv tool install specify-cli --from "git+https://github.com/github/spec-kit.git@$SPECKIT_COMMIT"
+        uv tool dir --bin >> "$GITHUB_PATH"
+        "$(uv tool dir --bin)/specify" version | tee "$RUNNER_TEMP/specify-version.txt"
+        grep -q '1\.4\.0' "$RUNNER_TEMP/specify-version.txt"
+
+    - name: A scratch project, made by specify init
+      id: init
+      shell: bash
+      working-directory: ${{ runner.temp }}
+      # The inputs are written into the line, not passed through the
+      # environment, so a quoted option reaches specify as one word.
+      run: |
+        specify init scratch --non-interactive --ignore-agent-tools --script sh --integration ${{ inputs.integration }} ${{ inputs.options }}
+        echo "project=$RUNNER_TEMP/scratch" >> "$GITHUB_OUTPUT"

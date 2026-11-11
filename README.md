@@ -274,11 +274,19 @@ code. How an agent follows the prose is not tested.
 ## Releasing
 
 A release is a `v<version>` tag on a commit `main` has.
-[`.github/workflows/release.yml`](.github/workflows/release.yml) checks that
-the tag, `extension.yml`'s version and a dated `CHANGELOG.md` section,
-`## [0.1.0] - YYYY-MM-DD`, agree, runs the tests, and makes the GitHub release
-with that section as its notes. Spec Kit installs the tag's archive,
-`archive/refs/tags/v<version>.zip`, so the release attaches nothing.
+[`.github/workflows/release.yml`](.github/workflows/release.yml):
+
+1. checks that the tag, `extension.yml`'s version and a dated `CHANGELOG.md`
+   section, `## [0.1.0] - YYYY-MM-DD`, agree, and runs the tests;
+2. installs the extension with Spec Kit's CLI from the tag's own archive,
+   `https://github.com/spec-family/spec-kit-extension/archive/refs/tags/v<version>.zip`,
+   the download URL the community catalogue is given, and runs the same checks
+   as `install.yml` on what it installed;
+3. only then makes the GitHub release, with that section as its notes.
+
+The release attaches nothing: Spec Kit installs the tag's archive. A manual
+run of the workflow rehearses steps 1 and 2 on GitHub's archive of the
+commit it runs on, and makes no release.
 
 ## Versions
 
