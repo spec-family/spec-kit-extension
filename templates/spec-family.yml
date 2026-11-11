@@ -1,0 +1,47 @@
+# The spec-family checks for a Spec Kit project: the code against the rules
+# the constitution and the ADRs state, each requirement marked Implemented
+# against its test, and the specs, plans and tasks against each other and the
+# repository.
+#
+# Copy this file to .github/workflows/spec-family.yml. The tools run from the
+# project's devDependencies, pinned exactly, so `npm ci` installs the versions
+# this job was written for:
+#
+#   npm install --save-dev --save-exact @spec-family/spec-graph@0.24.1 @spec-family/spec-guard@0.33.1
+#
+# Run the project's own tests too, in this job or another: spec-guard checks
+# that a requirement's test is there and could fail, not that it passes.
+name: spec-family
+
+on:
+  pull_request:
+  push:
+    # The default branch.
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  specs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # spec-graph looks in git for the commits a ticked task names, and
+          # stops in a shallow clone rather than guess.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: The code against the rules the constitution and the ADRs state (spec-guard)
+        run: npx --no-install @spec-family/spec-guard --format github
+      - name: Each requirement marked Implemented against its test (spec-guard claims)
+        if: ${{ !cancelled() }}
+        run: npx --no-install @spec-family/spec-guard claims --format github
+      - name: The specs, plans and tasks against each other and the repository (spec-graph)
+        if: ${{ !cancelled() }}
+        run: npx --no-install @spec-family/spec-graph check --format github
