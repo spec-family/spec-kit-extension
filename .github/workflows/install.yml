@@ -1,0 +1,98 @@
+name: install
+
+# Installs this extension into a project made by Spec Kit's own CLI, the way
+# a user would, and fails unless the commands, templates and hooks land where
+# Spec Kit puts them. Python runs here only inside Spec Kit's CLI, which uv
+# installs on the runner; the checks are this repository's Node scripts.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: Spec Kit 1.4.0, ${{ matrix.integration }}, ${{ matrix.source }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # As a user installs a release: its archive, by URL, into the
+          # integration a non-interactive init chooses by default.
+          - integration: copilot
+            source: release archive
+            options: ''
+          # As an author installs a checkout: --dev, into the generic
+          # integration's flat command files.
+          - integration: generic
+            source: checkout
+            options: --integration-options="--commands-dir .agent/commands"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # Spec Kit v1.4.0, the release whose rules scripts/check-manifest.mjs
+      # mirrors, by the commit its tag names.
+      SPECKIT_COMMIT: 0019fa14d12f45edabc2cc3176c9168a68bd0f97 # v1.4.0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: '0.13.6'
+          checksum: 'f29c3e94ffabd7e6f3ba521dba169a9b7ec12100bf3257087f0f24f6123f3645'
+          enable-cache: false
+
+      - name: Spec Kit's CLI, from the commit of its v1.4.0 tag
+        run: |
+          uv tool install specify-cli --from "git+https://github.com/github/spec-kit.git@$SPECKIT_COMMIT"
+          uv tool dir --bin >> "$GITHUB_PATH"
+          "$(uv tool dir --bin)/specify" version | tee "$RUNNER_TEMP/specify-version.txt"
+          grep -q '1\.4\.0' "$RUNNER_TEMP/specify-version.txt"
+
+      - name: A scratch project, made by specify init
+        working-directory: ${{ runner.temp }}
+        run: specify init scratch --non-interactive --ignore-agent-tools --script sh --integration ${{ matrix.integration }} ${{ matrix.options }}
+
+      - name: Install the extension from an archive made as GitHub makes a tag's, by URL
+        if: matrix.source == 'release archive'
+        run: |
+          version="$(node --input-type=module -e "import { readFileSync } from 'node:fs'; import { parseYamlSubset } from './scripts/yaml-subset.mjs'; console.log(parseYamlSubset(readFileSync('extension.yml', 'utf8')).extension.version)")"
+          mkdir -p "$RUNNER_TEMP/release"
+          git archive --format=zip --prefix="spec-kit-extension-$version/" -o "$RUNNER_TEMP/release/v$version.zip" HEAD
+          node scripts/serve-dir.mjs "$RUNNER_TEMP/release" 8731 &
+          for attempt in $(seq 1 20); do
+            curl -sf -o /dev/null "http://127.0.0.1:8731/v$version.zip" && break
+            sleep 0.5
+          done
+          cd "$RUNNER_TEMP/scratch"
+          # specify asks before installing from a URL no catalogue vouches for.
+          printf 'y\n' | specify extension add --from "http://127.0.0.1:8731/v$version.zip"
+          kill %1
+
+      - name: Install the extension from the checkout, with --dev
+        if: matrix.source == 'checkout'
+        working-directory: ${{ runner.temp }}/scratch
+        run: specify extension add --dev "$GITHUB_WORKSPACE"
+
+      - name: The installed copy, the commands, the templates and the hooks are where Spec Kit puts them
+        run: node scripts/check-install.mjs "$RUNNER_TEMP/scratch" ${{ matrix.integration }}
+
+      - name: The setup the commands ask for, and every check they run, in that project
+        if: ${{ !cancelled() }}
+        run: node scripts/run-commands.mjs "$RUNNER_TEMP/scratch"
+
+      - name: What specify wrote, to read a failure by
+        if: failure()
+        working-directory: ${{ runner.temp }}/scratch
+        run: |
+          find . -path ./node_modules -prune -o -type f -print | sort
+          cat .specify/extensions.yml || true
+          specify extension list || true

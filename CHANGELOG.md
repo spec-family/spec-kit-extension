@@ -21,3 +21,11 @@ what Spec Kit installs.
 - **A fixture.** A small Spec Kit project the job passes over, and seven
   copies of it broken one way each that the job fails, checked by
   `scripts/check-fixture.mjs`.
+- **Installed by Spec Kit in CI.** `specify` 1.4.0, installed on the runner,
+  makes a project and installs the extension into it from a release-shaped
+  archive by URL and from the checkout with `--dev`; the job fails unless the
+  copy, the commands, the templates and the hooks land where Spec Kit puts
+  them, and unless every check the commands run passes in that project.
+- **Releases.** A `v<version>` tag on `main` whose version and dated
+  CHANGELOG section agree with `extension.yml` makes the GitHub release, with
+  that section as its notes.
