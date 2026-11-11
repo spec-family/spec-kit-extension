@@ -21,17 +21,22 @@ const [project, integration] = process.argv.slice(2);
 const manifest = parseYamlSubset(readFileSync(join(root, 'extension.yml'), 'utf8'));
 const id = manifest.extension.id;
 
-// Where each integration writes a command, and how it spells an invocation:
-// the GitHub Copilot integration's default skills layout, and the generic
-// integration's flat files in the directory its --commands-dir names.
+// Where each integration writes a command, how it spells an invocation, and
+// where Spec Kit's registry records it: the GitHub Copilot integration's
+// default skills layout, recorded as skills, and the generic integration's
+// flat files in the directory its --commands-dir names, recorded as commands.
 const LAYOUTS = {
   copilot: {
     file: (name) => `.github/skills/${name.split('.').join('-')}/SKILL.md`,
     invocation: (name) => `/${name.split('.').join('-')}`,
+    recorded: (entry) => [...(entry.registered_skills ?? [])],
+    recordedAs: (name) => name.split('.').join('-'),
   },
   generic: {
     file: (name) => `.agent/commands/${name}.md`,
     invocation: (name) => `/${name}`,
+    recorded: (entry) => [...(entry.registered_commands?.generic ?? [])],
+    recordedAs: (name) => name,
   },
 };
 const layout = LAYOUTS[integration];
@@ -138,8 +143,8 @@ for (const { name, file } of manifest.provides.commands) {
   const title = source.match(/^# .+$/m)[0];
   check(registered.includes(title), `${layout.file(name)} carries the command's text`, registered.slice(0, 600));
   check(!registered.includes('__SPECKIT_COMMAND_'), `${layout.file(name)} has every command reference rendered`);
-  for (const [, encoded] of source.matchAll(/__SPECKIT_COMMAND_([A-Z][A-Z0-9_-]*)__/g)) {
-    const target = `speckit.${encoded.toLowerCase().split('_').join('.')}`;
+  const targets = new Set([...source.matchAll(/__SPECKIT_COMMAND_([A-Z][A-Z0-9_-]*)__/g)].map(([, encoded]) => `speckit.${encoded.toLowerCase().split('_').join('.')}`));
+  for (const target of targets) {
     check(registered.includes(layout.invocation(target)), `${layout.file(name)} refers to ${target} as ${layout.invocation(target)}`);
   }
 }
@@ -148,7 +153,7 @@ for (const { name, file } of manifest.provides.commands) {
 const registry = JSON.parse(read(join(project, '.specify', 'extensions', '.registry')) ?? '{}');
 const entry = registry.extensions?.[id];
 check(
-  entry !== undefined && same([...(entry.registered_commands?.[integration] ?? [])].sort(), [...commands].sort()),
+  entry !== undefined && same(layout.recorded(entry).sort(), commands.map(layout.recordedAs).sort()),
   `.specify/extensions/.registry records the three commands for ${integration}`,
   JSON.stringify(entry ?? registry, null, 2),
 );
