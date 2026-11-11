@@ -68,10 +68,16 @@ describe('the templates', () => {
     assert.equal(read('templates/spec-guard.json'), read('fixture/.spec-guard.json'));
   });
 
-  test('pin each action to a commit, with the version beside it', () => {
-    const uses = [...read('templates/spec-family.yml').matchAll(/uses: (.+)$/gm)].map((match) => match[1]);
-    assert.equal(uses.length, 2);
-    for (const use of uses) assert.match(use, /^actions\/[a-z-]+@[0-9a-f]{40} # v[0-9]+\.[0-9]+\.[0-9]+$/);
+  test('pin each action to a commit, with the version beside it, as every workflow here does', () => {
+    const workflows = ['templates/spec-family.yml', ...files.filter((file) => file.startsWith('.github/workflows/'))];
+    assert.ok(workflows.length >= 4, workflows.join(', '));
+    for (const file of workflows) {
+      const uses = [...read(file).matchAll(/uses: (.+)$/gm)].map((match) => match[1]);
+      assert.ok(uses.length >= 2, file);
+      for (const use of uses) assert.match(use, /^[a-z-]+\/[a-z-]+@[0-9a-f]{40} # v[0-9]+\.[0-9]+\.[0-9]+$/, `${file}: ${use}`);
+      assert.match(read(file), /^permissions:\n {2}contents: read$/m, `${file} reads the repository and no more, by default`);
+      for (const [, label] of read(file).matchAll(/runs-on: (.+)$/gm)) assert.equal(label, 'ubuntu-24.04', file);
+    }
   });
 
   test('run each tool from the project, never by a bare name', () => {
@@ -150,9 +156,16 @@ describe('every file', () => {
 });
 
 describe('the release', () => {
-  test('is the version CHANGELOG.md opens with', () => {
-    const top = read('CHANGELOG.md').match(/^## \[?([0-9]+\.[0-9]+\.[0-9]+)\]?/m);
-    assert.equal(top?.[1], manifest.extension.version);
+  test('is the version CHANGELOG.md opens with, unreleased or dated', () => {
+    const top = read('CHANGELOG.md').match(/^## .*$/m)?.[0];
+    assert.match(top, /^## \[?[0-9]+\.[0-9]+\.[0-9]+\]? - (Unreleased|[0-9]{4}-[0-9]{2}-[0-9]{2})$/);
+    assert.equal(top.match(/[0-9]+\.[0-9]+\.[0-9]+/)[0], manifest.extension.version);
+  });
+
+  test('is installed in CI into the Spec Kit release the manifest asks for at least', () => {
+    const pinned = read('.github/workflows/install.yml').match(/SPECKIT_COMMIT: ([0-9a-f]{40}) # v([0-9]+\.[0-9]+\.[0-9]+)$/m);
+    assert.ok(pinned, 'install.yml pins Spec Kit by a commit, with its tag beside it');
+    assert.ok(manifest.requires.speckit_version.startsWith(`>=${pinned[2]},`), manifest.requires.speckit_version);
   });
 
   test('leaves the development files out of the installed copy', () => {

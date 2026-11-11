@@ -243,6 +243,43 @@ applies to a submission, with a short Node script and no Spec Kit install,
 and checks that the version pins, the configuration templates and the
 fixture agree.
 
+## Installed by Spec Kit, in CI
+
+[`.github/workflows/install.yml`](.github/workflows/install.yml) installs
+Spec Kit's own CLI, `specify` 1.4.0 from the commit its tag names, on the
+runner, makes a project with `specify init`, and installs this extension into
+it twice over: from an archive made as GitHub makes a tag's, by URL, into the
+GitHub Copilot integration a non-interactive init chooses; and from the
+checkout with `--dev`, into the generic integration's flat command files.
+[`scripts/check-install.mjs`](scripts/check-install.mjs) then fails unless:
+
+- `specify extension list --json` and `info --json` show the extension, its
+  three commands, three templates and three hooks;
+- the installed copy under `.specify/extensions/spec-family/` holds the
+  released files, and none of the fixture, scripts or tests;
+- `.specify/extensions.yml` registers the hooks after `tasks` and
+  `implement`, enabled, in order;
+- each command is registered where the integration reads it,
+  `.github/skills/speckit-spec-family-<command>/SKILL.md` or
+  `.agent/commands/speckit.spec-family.<command>.md`, with every reference to
+  another command rendered in the integration's own spelling.
+
+The commands are prompts: an agent reads them and acts. What can be done
+without an agent, [`scripts/run-commands.mjs`](scripts/run-commands.mjs) does
+in the same project, reading the installed commands: the setup the `ci`
+command asks for, and then every shell line in the three commands' fenced
+blocks, each of which has to exit 0 over the fixture's constitution, specs and
+code. How an agent follows the prose is not tested.
+
+## Releasing
+
+A release is a `v<version>` tag on a commit `main` has.
+[`.github/workflows/release.yml`](.github/workflows/release.yml) checks that
+the tag, `extension.yml`'s version and a dated `CHANGELOG.md` section,
+`## [0.1.0] - YYYY-MM-DD`, agree, runs the tests, and makes the GitHub release
+with that section as its notes. Spec Kit installs the tag's archive,
+`archive/refs/tags/v<version>.zip`, so the release attaches nothing.
+
 ## Versions
 
 | | Version |
