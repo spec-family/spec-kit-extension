@@ -1,0 +1,38 @@
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    strategy:
+      matrix:
+        node: ['22', '24']
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: fixture/package-lock.json
+      - name: The manifest, against Spec Kit's rules and the community catalogue's
+        run: node scripts/check-manifest.mjs
+      - name: The manifest, the templates, the commands and the fixture agree
+        if: ${{ !cancelled() }}
+        run: npm test
+      - name: The fixture's packages, as the template's npm ci installs them
+        run: npm ci
+        working-directory: fixture
+      - name: The fixture's own tests
+        run: npm test
+        working-directory: fixture
+      - name: The template's steps over the fixture, and over copies broken one way each
+        run: node scripts/check-fixture.mjs

@@ -1,0 +1,10 @@
+# Development files, left out of the copy `specify extension add` installs.
+# The installed copy is extension.yml, commands/, templates/, README.md,
+# CHANGELOG.md and LICENSE.
+.github/
+fixture/
+scripts/
+tests/
+package.json
+.gitattributes
+.gitignore

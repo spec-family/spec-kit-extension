@@ -1,0 +1,68 @@
+schema_version: "1.0"
+
+extension:
+  id: "spec-family"
+  name: "spec-family checks"
+  version: "0.1.0"
+  description: "Runs spec-graph and spec-guard in CI over what Spec Kit writes: ticked tasks against evidence, Implemented requirements against tests, code against the constitution."
+  author: "spec-family"
+  repository: "https://github.com/spec-family/spec-kit-extension"
+  license: "MIT"
+  homepage: "https://github.com/spec-family/spec-kit-extension"
+  category: "docs"
+  effect: "read-write"
+
+requires:
+  speckit_version: ">=1.4.0,<2.0.0"
+  tools:
+    - name: "node"
+      version: ">=22.0.0"
+      required: true
+    - name: "npm"
+      required: true
+
+provides:
+  commands:
+    - name: "speckit.spec-family.graph"
+      file: "commands/graph.md"
+      description: "Check the specs, plans and tasks against each other and the repository with spec-graph, and explain each finding"
+    - name: "speckit.spec-family.guard"
+      file: "commands/guard.md"
+      description: "Check the code against the rules the constitution and the ADRs state, and each Implemented requirement against its test, with spec-guard"
+    - name: "speckit.spec-family.ci"
+      file: "commands/ci.md"
+      description: "Install spec-graph and spec-guard pinned, write their configuration, and add the GitHub Actions job that runs them"
+
+  templates:
+    - name: "spec-family-workflow"
+      file: "templates/spec-family.yml"
+      description: "The GitHub Actions job, copied to .github/workflows/spec-family.yml"
+    - name: "spec-family-graph-config"
+      file: "templates/spec-graph.json"
+      description: "spec-graph's configuration for a Spec Kit project, copied to .spec-graph.json"
+    - name: "spec-family-guard-config"
+      file: "templates/spec-guard.json"
+      description: "spec-guard's configuration for a Spec Kit project, copied to .spec-guard.json"
+
+hooks:
+  after_tasks:
+    command: "speckit.spec-family.graph"
+    optional: true
+    prompt: "Check the new tasks and the documents they cite with spec-graph?"
+    description: "Check the feature's spec, plan and tasks against each other and the repository"
+  after_implement:
+    - command: "speckit.spec-family.guard"
+      optional: true
+      prompt: "Check the code against the constitution and each Implemented requirement against its test with spec-guard?"
+      description: "Hold the code to the constitution's rules and each Implemented requirement to its test"
+    - command: "speckit.spec-family.graph"
+      optional: true
+      prompt: "Check each ticked task against the requirement or commit it cites with spec-graph?"
+      description: "Hold each ticked task to the requirement or commit it cites"
+
+tags:
+  - "testing"
+  - "ci-cd"
+  - "documentation"
+  - "traceability"
+  - "constitution"
