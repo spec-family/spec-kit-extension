@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-11
 
-**Status**: Accepted
+**Status**: Draft
 
 **Input**: User description: "Split a restaurant bill evenly between the people at the table."
 

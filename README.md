@@ -46,10 +46,12 @@ what each finding means.
   `tasks.md` still holds open tasks is not reported: spec-graph reads each file
   of a feature as a document of its own for now
   ([ADR-0031](https://github.com/spec-family/spec-graph/blob/main/docs/adr/0031-sdd-layouts-are-read-as-written.md)).
-- **Directives in a draft are not run.** Spec Kit writes a new spec as
-  `**Status**: Draft`, and spec-guard runs no directive in a draft, so a
-  requirement marked `Implemented` there has no evidence until the spec's
-  status says it is in force, such as `Accepted`.
+- **It does not read a spec's status.** Spec Kit writes every spec
+  `**Status**: Draft` and never changes the line, so the configuration names
+  the specs in `ignoreStatus`, and both tools read them as in force: their
+  directives run, and an `Implemented` requirement's test counts, whatever
+  the line says. Any other document's status is still read, so an ADR in
+  `Draft` runs no directive.
 - **Status words are read in English**, whatever language the documents are
   written in.
 - **The tools are before 1.0.** Their output can change between minor
@@ -60,7 +62,7 @@ what each finding means.
 The extension needs Spec Kit 1.4.0 or later, Node.js 22 or later and npm.
 
 ```bash
-specify extension add spec-family --from https://github.com/spec-family/spec-kit-extension/archive/refs/tags/v0.1.0.zip
+specify extension add spec-family --from https://github.com/spec-family/spec-kit-extension/archive/refs/tags/v0.2.0.zip
 ```
 
 Or from a clone:
@@ -78,11 +80,12 @@ Once the project's first feature has a spec, run the setup command in your
 agent, in its form of Spec Kit commands, `/speckit.spec-family.ci` or
 `/speckit-spec-family-ci`. It:
 
-1. installs spec-graph 0.24.1 and spec-guard 0.33.1 as devDependencies,
+1. installs spec-graph 0.25.0 and spec-guard 0.34.0 as devDependencies,
    pinned exactly, writing a minimal `package.json` first where the project
    has none;
 2. writes `.spec-graph.json` and `.spec-guard.json` from the templates, and
-   sets `testPrefixes` to how the project's tests are written;
+   sets `testPrefixes` to how the project's tests are written, leaving
+   `checklists` off until the tasks cite their evidence;
 3. copies the CI job to `.github/workflows/spec-family.yml`;
 4. runs the checks once and explains what they find.
 
@@ -144,11 +147,11 @@ The two files the setup writes turn on the rest:
 
 ```json
 {
+  "ignoreStatus": ["specs/**/spec.md"],
   "claims": {
     "files": ["specs/*/spec.md"],
     "labels": { "Implemented": "done", "Specified": "open" }
-  },
-  "checklists": ["specs/*/tasks.md"]
+  }
 }
 ```
 
@@ -157,6 +160,7 @@ The two files the setup writes turn on the rest:
 ```json
 {
   "specs": [".specify/memory/constitution.md", "specs/**/*.md"],
+  "ignoreStatus": ["specs/**/spec.md"],
   "claims": {
     "files": ["specs/*/spec.md"],
     "labels": {
@@ -170,8 +174,19 @@ The two files the setup writes turn on the rest:
 
 - `claims` makes each requirement that opens with a label a claim: done when
   it is `Implemented`, open while it is `Specified`.
-- `checklists` holds each ticked task to the requirement it cites or the
-  commit it names.
+- `ignoreStatus`, the same list in both files, names the specs, whose
+  `**Status**: Draft` Spec Kit never changes: both tools read them with no
+  status, as in force. Every other document's status is read.
+- `checklists` is off. Spec Kit's `implement` ticks each task it finishes
+  without citing a requirement or naming a commit, so it would turn the first
+  run red on every ticked task. Once the tasks cite the requirement they
+  build or name the commit that did the work, as below, add it to
+  `.spec-graph.json`, and each ticked task is held to what it cites:
+
+  ```json
+  "checklists": ["specs/*/tasks.md"]
+  ```
+
 - `specs` names the documents whose directives spec-guard runs: by default it
   reads only `docs/**/*.md`. Add your ADRs' directory where you keep them.
 - `testPrefixes` is how a test is told from a mention of its name: `test('`
@@ -221,15 +236,19 @@ read JavaScript, TypeScript, Python, Go, Rust and C#.
 ## The fixture
 
 [`fixture/`](fixture) is a small Spec Kit project - a constitution with three
-principles, a feature built and tested, a second still in draft - that the
-checks pass over. [`scripts/check-fixture.mjs`](scripts/check-fixture.mjs)
+principles, a feature built and tested, a second not built yet, both specs
+`**Status**: Draft` as Spec Kit leaves them - that the checks pass over. It
+uses the templates' configuration, with `checklists` turned on, since its
+tasks cite their evidence. [`scripts/check-fixture.mjs`](scripts/check-fixture.mjs)
 runs the CI job's steps over it exactly as the template writes them, and then
-over seven copies broken one way each: a task ticked while its requirement is
-`Specified`, a task ticked that cites nothing, a link to a requirement that is
-not there, an `Implemented` requirement with no test under it, the same in a
-spec still in draft, the library importing the command line, and the library
-formatting a fractional amount. Each copy has to fail the step the job runs
-for it, with the rule it breaks.
+over eight copies changed one way each. Seven have to fail the step the job
+runs for them, with the rule they break: a task ticked while its requirement
+is `Specified`, a task ticked that cites nothing, a link to a requirement that
+is not there, an `Implemented` requirement with no test under it, the
+configuration without `ignoreStatus`, the library importing the command line,
+and the library formatting a fractional amount. The eighth has to pass: the
+task that cites nothing, under the template's own `.spec-graph.json`, which
+leaves `checklists` off.
 
 ```bash
 npm test
@@ -277,7 +296,7 @@ A release is a `v<version>` tag on a commit `main` has.
 [`.github/workflows/release.yml`](.github/workflows/release.yml):
 
 1. checks that the tag, `extension.yml`'s version and a dated `CHANGELOG.md`
-   section, `## [0.1.0] - YYYY-MM-DD`, agree, and runs the tests;
+   section, `## [0.2.0] - YYYY-MM-DD`, agree, and runs the tests;
 2. installs the extension with Spec Kit's CLI from the tag's own archive,
    `https://github.com/spec-family/spec-kit-extension/archive/refs/tags/v<version>.zip`,
    the download URL the community catalogue is given, and runs the same checks
@@ -292,9 +311,9 @@ commit it runs on, and makes no release.
 
 | | Version |
 | --- | --- |
-| This extension | 0.1.0 |
-| spec-graph, pinned by the setup | 0.24.1 |
-| spec-guard, pinned by the setup | 0.33.1 |
+| This extension | 0.2.0 |
+| spec-graph, pinned by the setup | 0.25.0 |
+| spec-guard, pinned by the setup | 0.34.0 |
 | Spec Kit | 1.4.0 or later, before 2.0.0 |
 | Node.js | 22 or later |
 

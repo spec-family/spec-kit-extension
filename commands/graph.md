@@ -91,9 +91,10 @@ before the push; CI is where it counts.
 ## What it does not do
 
 - It reads only what is marked. A task is held to its evidence only where
-  `.spec-graph.json` names the tasks as `checklists`, and a requirement is a
-  claim only where it opens with a label, such as `Implemented` or
-  `Specified`, as a code span.
+  `.spec-graph.json` names the tasks as `checklists`, which the setup leaves
+  off until the tasks cite their evidence, and a requirement is a claim only
+  where it opens with a label, such as `Implemented` or `Specified`, as a
+  code span.
 - It reads no code and runs no test. `__SPECKIT_COMMAND_SPEC-FAMILY_GUARD__`
   holds the code to the constitution, and each `Implemented` requirement to
   its test.

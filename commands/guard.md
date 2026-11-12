@@ -22,7 +22,10 @@ comment such as `<!-- @assert-import-absence target="src/lib" module="src/cli" -
 against the code, the same way every time, and a rule the code has stopped
 keeping fails the build. Directives in a document whose status is `Draft`,
 `Proposed`, `Rejected`, `Deprecated`, `Superseded` or `Archived` are read and
-not run; any other status, or none, keeps them running.
+not run; any other status, or none, keeps them running. The specs are the
+exception: Spec Kit writes each one `**Status**: Draft` and never changes
+the line, so `ignoreStatus` in `.spec-guard.json` names them, and their
+directives run whatever it says.
 
 A requirement in a spec is a claim where it opens with a label as a code span,
 such as `` `Implemented` **FR-001**: ... ``. `spec-guard claims` holds each
@@ -72,13 +75,9 @@ before the push; CI is where they count.
    | --- | --- | --- |
    | A directive fails, with the files and lines that break it | The code no longer keeps a rule the constitution or an ADR states | Change the code to keep the rule. If the rule itself should change, that is an amendment for the user to decide, made with `__SPECKIT_COMMAND_CONSTITUTION__` or a new ADR, the sentence and its directive together |
    | `no files were inspected, so this assertion verified nothing` | The directive's `target` names no file, often after the code moved | Point `target` at where the code is now |
-   | `unevidenced-claim` | A requirement says `Implemented`, and no directive under it counts a test, or the spec holding it is still `Draft`, so its directives are not run | Write the test, then a directive under the requirement that counts it, as `<!-- @assert-count target="test/split.test.js" symbol="test('the shares add up to the bill'" min="1" -->`, the `symbol` opening with one of the `testPrefixes` in `.spec-guard.json`; once the feature is built, set the spec's `**Status**:` from `Draft` to `Accepted`; or lower the label to `Specified` |
+   | `unevidenced-claim` | A requirement says `Implemented`, and no directive under it counts a test; or the spec says `**Status**: Draft` and `.spec-guard.json` has no `ignoreStatus`, so its directives are not run | Write the test, then a directive under the requirement that counts it, as `<!-- @assert-count target="test/split.test.js" symbol="test('the shares add up to the bill'" min="1" -->`, the `symbol` opening with one of the `testPrefixes` in `.spec-guard.json`; or lower the label to `Specified`. Where `ignoreStatus` is missing, the setup predates it: add `"ignoreStatus": ["specs/**/spec.md"]` to `.spec-guard.json` and `.spec-graph.json`, as `__SPECKIT_COMMAND_SPEC-FAMILY_CI__` writes them |
    | `mixed-labels` | One requirement carries two labels | Keep the one that is true |
    | A label "stands in prose and is no claim" | A label word outside a requirement's opening, for information only | Nothing; it changes no exit code |
-
-   The hint under `unevidenced-claim` shows a directive with
-   `symbol="fn test_..."` whatever the project's tests look like; write the
-   symbol from the project's own `testPrefixes`.
 
 6. **Fix only what the user agrees to.** Propose the fixes together, and make
    the ones the user chooses. Never edit a directive alone to let the code

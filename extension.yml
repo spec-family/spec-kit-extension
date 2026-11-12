@@ -3,7 +3,7 @@ schema_version: "1.0"
 extension:
   id: "spec-family"
   name: "spec-family checks"
-  version: "0.1.0"
+  version: "0.2.0"
   description: "Runs spec-graph and spec-guard in CI over what Spec Kit writes: ticked tasks against evidence, Implemented requirements against tests, code against the constitution."
   author: "spec-family"
   repository: "https://github.com/spec-family/spec-kit-extension"
