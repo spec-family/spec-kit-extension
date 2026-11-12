@@ -2,7 +2,9 @@
 // Runs the CI template's checks over the fixture, a small Spec Kit project,
 // exactly as the template writes them, and then over copies of the fixture
 // broken one way each. A job that only ever passes shows nothing: each copy
-// has to fail, on the step the case names, with the rule the case names.
+// has to fail, on the step the case names, with the rule the case names. One
+// copy has to pass instead: the template's own .spec-graph.json leaves
+// checklists off, and the fixture is a project that turned them on.
 //
 //   node scripts/check-fixture.mjs        after `npm ci` in fixture/
 import { spawnSync } from 'node:child_process';
@@ -81,6 +83,18 @@ const cases = [
     },
   },
   {
+    name: "the same task, under the template's .spec-graph.json, which leaves checklists off",
+    step: 'spec-graph check',
+    exit: 0,
+    files: {
+      '.spec-graph.json': () => readFileSync(join(root, 'templates', 'spec-graph.json'), 'utf8'),
+      'specs/001-split-a-bill/tasks.md': edit(
+        '**Checkpoint**',
+        '- [X] T007 [US1] Print each share in src/cli/split.js\n\n**Checkpoint**',
+      ),
+    },
+  },
+  {
     name: 'a link to a requirement another feature does not have',
     step: 'spec-graph check',
     rule: 'broken-reference',
@@ -98,10 +112,10 @@ const cases = [
     },
   },
   {
-    name: 'a requirement marked Implemented in a spec still in Draft',
+    name: 'a spec in Draft, as Spec Kit writes it, with ignoreStatus taken out of the configuration',
     step: 'spec-guard claims',
     rule: 'unevidenced-claim',
-    files: { 'specs/001-split-a-bill/spec.md': edit('**Status**: Accepted', '**Status**: Draft') },
+    files: { '.spec-guard.json': edit('  "ignoreStatus": ["specs/**/spec.md"],\n', '') },
   },
   {
     name: 'the library importing the command line, against principle I',
@@ -117,7 +131,7 @@ const cases = [
   },
 ];
 
-for (const { name, step: which, rule, files } of cases) {
+for (const { name, step: which, rule, exit = 1, files } of cases) {
   const step = steps.find((s) => s.slice(PREFIX.length).startsWith(which));
   if (step === undefined) fail(`no step of the template runs "${which}"`);
   const copy = mkdtempSync(join(tmpdir(), 'spec-family-fixture-'));
@@ -128,11 +142,12 @@ for (const { name, step: which, rule, files } of cases) {
       writeFileSync(path, change(readFileSync(path, 'utf8')));
     }
     const { status, output } = run(step, copy);
-    report(status === 1 && output.includes(rule), `${name}: ${which} exits 1 with ${rule}`, `exit ${status}\n${output}`);
+    if (exit === 0) report(status === 0, `${name}: ${which} exits 0`, `exit ${status}\n${output}`);
+    else report(status === 1 && output.includes(rule), `${name}: ${which} exits 1 with ${rule}`, `exit ${status}\n${output}`);
   } finally {
     rmSync(copy, { recursive: true, force: true });
   }
 }
 
 if (failures > 0) fail(`${failures} of ${steps.length + cases.length} checks failed`);
-console.log(`\n${steps.length + cases.length} checks: the fixture passes each step, and each broken copy fails the step it should`);
+console.log(`\n${steps.length + cases.length} checks: the fixture passes each step, and each changed copy fails the step it should, or passes it`);

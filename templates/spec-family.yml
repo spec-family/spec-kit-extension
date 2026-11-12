@@ -7,7 +7,7 @@
 # project's devDependencies, pinned exactly, so `npm ci` installs the versions
 # this job was written for:
 #
-#   npm install --save-dev --save-exact @spec-family/spec-graph@0.24.1 @spec-family/spec-guard@0.33.1
+#   npm install --save-dev --save-exact @spec-family/spec-graph@0.25.0 @spec-family/spec-guard@0.34.0
 #
 # Run the project's own tests too, in this job or another: spec-guard checks
 # that a requirement's test is there and could fail, not that it passes.

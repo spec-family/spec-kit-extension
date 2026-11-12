@@ -1,5 +1,6 @@
 {
   "specs": [".specify/memory/constitution.md", "specs/**/*.md"],
+  "ignoreStatus": ["specs/**/spec.md"],
   "claims": {
     "files": ["specs/*/spec.md"],
     "labels": {

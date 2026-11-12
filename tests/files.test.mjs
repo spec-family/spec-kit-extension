@@ -39,12 +39,14 @@ describe('the tool versions', () => {
   test('are the same wherever a file names one', () => {
     let named = 0;
     for (const file of textFiles.filter((path) => !path.startsWith('fixture/') && !path.startsWith('tests/'))) {
-      for (const [, tool, version] of read(file).matchAll(/(@spec-family\/spec-(?:graph|guard))@([0-9][0-9.]*[0-9])/g)) {
+      // CHANGELOG.md keeps what each release pinned: its top section names the pins.
+      const text = file === 'CHANGELOG.md' ? read(file).split(/^## /m).slice(0, 2).join('## ') : read(file);
+      for (const [, tool, version] of text.matchAll(/(@spec-family\/spec-(?:graph|guard))@([0-9][0-9.]*[0-9])/g)) {
         assert.equal(version, pins[tool], `${file} names ${tool}@${version}`);
         named += 1;
       }
       // `spec-graph 0.24.1`, and a table row, `| spec-graph, pinned ... | 0.24.1 |`.
-      for (const [, tool, version] of read(file).matchAll(/\b(spec-(?:graph|guard))(?: |,[^|\n]*\| )([0-9]+\.[0-9]+\.[0-9]+)\b/g)) {
+      for (const [, tool, version] of text.matchAll(/\b(spec-(?:graph|guard))(?: |,[^|\n]*\| )([0-9]+\.[0-9]+\.[0-9]+)\b/g)) {
         assert.equal(version, pins[`@spec-family/${tool}`], `${file} names ${tool} ${version}`);
         named += 1;
       }
@@ -63,9 +65,19 @@ describe('the tool versions', () => {
 });
 
 describe('the templates', () => {
-  test('are the configuration the fixture passes with', () => {
-    assert.equal(read('templates/spec-graph.json'), read('fixture/.spec-graph.json'));
+  test('are the configuration the fixture passes with, but for checklists, which it turns on as the setup says', () => {
     assert.equal(read('templates/spec-guard.json'), read('fixture/.spec-guard.json'));
+    const line = '"checklists": ["specs/*/tasks.md"]';
+    for (const file of ['commands/ci.md', 'README.md']) assert.ok(read(file).includes(line), `${file} gives the line that turns checklists on`);
+    const template = JSON.parse(read('templates/spec-graph.json'));
+    assert.equal(template.checklists, undefined, 'the template leaves checklists off');
+    assert.deepEqual(JSON.parse(read('fixture/.spec-graph.json')), { ...template, ...JSON.parse(`{${line}}`) });
+  });
+
+  test('name the specs in ignoreStatus, the same list for both tools', () => {
+    const graph = JSON.parse(read('templates/spec-graph.json')).ignoreStatus;
+    assert.deepEqual(graph, ['specs/**/spec.md']);
+    assert.deepEqual(JSON.parse(read('templates/spec-guard.json')).ignoreStatus, graph);
   });
 
   test('pin each action to a commit, with the version beside it, as every workflow and action here does', () => {

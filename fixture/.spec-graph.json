@@ -1,4 +1,5 @@
 {
+  "ignoreStatus": ["specs/**/spec.md"],
   "claims": {
     "files": ["specs/*/spec.md"],
     "labels": { "Implemented": "done", "Specified": "open" }

@@ -18,7 +18,7 @@ the default branch, the test framework, or a directory of ADRs.
 The checks belong in CI, where every change meets them the same way. This
 command gives the project:
 
-- spec-graph 0.24.1 and spec-guard 0.33.1 as devDependencies, pinned exactly,
+- spec-graph 0.25.0 and spec-guard 0.34.0 as devDependencies, pinned exactly,
   so every run uses the versions this extension was written for;
 - `.spec-graph.json` and `.spec-guard.json`, the configuration a Spec Kit
   project needs;
@@ -56,7 +56,7 @@ The templates are in this extension's installed copy, under
 3. **Install the tools, pinned exactly:**
 
    ```bash
-   npm install --save-dev --save-exact @spec-family/spec-graph@0.24.1 @spec-family/spec-guard@0.33.1
+   npm install --save-dev --save-exact @spec-family/spec-graph@0.25.0 @spec-family/spec-guard@0.34.0
    ```
 
    Never install them without a version, never use `--yes`, and never run a
@@ -90,12 +90,27 @@ The templates are in this extension's installed copy, under
 
    - spec-graph reads Spec Kit's layout with no configuration. `claims`
      makes each requirement that opens with a label, `Implemented` or
-     `Specified`, an item with that state, and `checklists` holds each
-     ticked task in `specs/*/tasks.md` to the requirement it cites or the
-     commit it names.
+     `Specified`, an item with that state.
    - spec-guard reads `docs/**/*.md` unless told otherwise, so `specs` names
      the constitution and the specs. `claims` holds each `Implemented`
      requirement to a directive that counts its test.
+   - `ignoreStatus`, the same list in both files, names the specs. Spec Kit
+     writes each spec `**Status**: Draft` and never changes the line, so
+     both tools read the specs with no status, as in force: their
+     directives run, and an `Implemented` requirement's test counts. Every
+     other document's status is still read, so an ADR in `Draft` runs no
+     directive. Keep the two lists the same.
+   - **`checklists` is off.** Spec Kit's `implement` ticks each task it
+     finishes without citing a requirement or naming a commit, so holding
+     ticked tasks to evidence would turn the first run red on every one.
+     Once the project's tasks cite the requirement they build, as
+     `([FR-001](spec.md#fr-001))`, or name the commit that did the work, as
+     `(commit "Subject")`, turn it on with this key in `.spec-graph.json`,
+     and each ticked task in `specs/*/tasks.md` is held to what it cites:
+
+     ```json
+     "checklists": ["specs/*/tasks.md"]
+     ```
 
 5. **Add the job.** Copy
    `.specify/extensions/spec-family/templates/spec-family.yml` to
@@ -126,9 +141,9 @@ The templates are in this extension's installed copy, under
    - make the job a required check of the default branch, a setting on the
      forge;
    - label the requirements a spec holds, `Implemented` with a directive
-     counting its test, `Specified` until then, and set a built feature's
-     `**Status**:` from `Draft` to `Accepted`, since directives in a draft
-     are not run;
+     counting its test, `Specified` until then;
+   - turn on `checklists` once the tasks cite their evidence, as step 4
+     says;
    - write directives under the constitution's rules, as
      `__SPECKIT_COMMAND_SPEC-FAMILY_GUARD__` describes;
    - move to newer versions of the tools on purpose, by changing both pins

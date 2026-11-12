@@ -12,7 +12,7 @@
     "test": "node --test"
   },
   "devDependencies": {
-    "@spec-family/spec-graph": "0.24.1",
-    "@spec-family/spec-guard": "0.33.1"
+    "@spec-family/spec-graph": "0.25.0",
+    "@spec-family/spec-guard": "0.34.0"
   }
 }
