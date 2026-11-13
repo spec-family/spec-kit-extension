@@ -62,7 +62,7 @@ what each finding means.
 The extension needs Spec Kit 1.4.0 or later, Node.js 22 or later and npm.
 
 ```bash
-specify extension add spec-family --from https://github.com/spec-family/spec-kit-extension/archive/refs/tags/v0.2.0.zip
+specify extension add spec-family --from https://github.com/spec-family/spec-kit-extension/archive/refs/tags/v0.3.0.zip
 ```
 
 Or from a clone:
@@ -80,7 +80,7 @@ Once the project's first feature has a spec, run the setup command in your
 agent, in its form of Spec Kit commands, `/speckit.spec-family.ci` or
 `/speckit-spec-family-ci`. It:
 
-1. installs spec-graph 0.25.0 and spec-guard 0.34.0 as devDependencies,
+1. installs spec-graph 0.26.0 and spec-guard 0.35.0 as devDependencies,
    pinned exactly, writing a minimal `package.json` first where the project
    has none;
 2. writes `.spec-graph.json` and `.spec-guard.json` from the templates, and
@@ -296,7 +296,7 @@ A release is a `v<version>` tag on a commit `main` has.
 [`.github/workflows/release.yml`](.github/workflows/release.yml):
 
 1. checks that the tag, `extension.yml`'s version and a dated `CHANGELOG.md`
-   section, `## [0.2.0] - YYYY-MM-DD`, agree, and runs the tests;
+   section, `## [0.3.0] - YYYY-MM-DD`, agree, and runs the tests;
 2. installs the extension with Spec Kit's CLI from the tag's own archive,
    `https://github.com/spec-family/spec-kit-extension/archive/refs/tags/v<version>.zip`,
    the download URL the community catalogue is given, and runs the same checks
@@ -311,9 +311,9 @@ commit it runs on, and makes no release.
 
 | | Version |
 | --- | --- |
-| This extension | 0.2.0 |
-| spec-graph, pinned by the setup | 0.25.0 |
-| spec-guard, pinned by the setup | 0.34.0 |
+| This extension | 0.3.0 |
+| spec-graph, pinned by the setup | 0.26.0 |
+| spec-guard, pinned by the setup | 0.35.0 |
 | Spec Kit | 1.4.0 or later, before 2.0.0 |
 | Node.js | 22 or later |
 

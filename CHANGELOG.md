@@ -4,6 +4,27 @@ All notable changes to this extension are documented here. The version is
 `extension.yml`'s, and each release is the tag `v<version>`, whose archive is
 what Spec Kit installs.
 
+## [0.3.0] - 2026-11-14
+
+### Changed
+
+- **The tools are spec-graph 0.26.0 and spec-guard 0.35.0**, pinned by the
+  setup, the CI template and the fixture. For what Spec Kit writes:
+  - spec-graph no longer reads a word that numbers a part, `Phase 2` in a
+    plan or a task list, as a document family, which made most of a Spec
+    Kit project's findings references that do not resolve. A file a Spec
+    Kit template names, such as `research.md` titled `# Phase 0 Research`,
+    takes its id from its path, so the other features' `research.md` are no
+    longer left out as duplicates; such a document's id changes, so record
+    a spec-graph baseline again once. Every report says what the run left
+    out.
+  - spec-guard says what an import or layer rule could not follow by path
+    rather than pass it, reads a spec saved as UTF-16, and runs a regex rule
+    within a time budget.
+  - Both now read Markdown up to 20 MiB, the family's limit, where
+    spec-graph stopped at 4 MiB, so a large file can report findings it did
+    not.
+
 ## [0.2.0] - 2026-11-12
 
 ### Changed
