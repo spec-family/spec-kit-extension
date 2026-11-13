@@ -18,7 +18,7 @@ the default branch, the test framework, or a directory of ADRs.
 The checks belong in CI, where every change meets them the same way. This
 command gives the project:
 
-- spec-graph 0.25.0 and spec-guard 0.34.0 as devDependencies, pinned exactly,
+- spec-graph 0.26.0 and spec-guard 0.35.0 as devDependencies, pinned exactly,
   so every run uses the versions this extension was written for;
 - `.spec-graph.json` and `.spec-guard.json`, the configuration a Spec Kit
   project needs;
@@ -56,7 +56,7 @@ The templates are in this extension's installed copy, under
 3. **Install the tools, pinned exactly:**
 
    ```bash
-   npm install --save-dev --save-exact @spec-family/spec-graph@0.25.0 @spec-family/spec-guard@0.34.0
+   npm install --save-dev --save-exact @spec-family/spec-graph@0.26.0 @spec-family/spec-guard@0.35.0
    ```
 
    Never install them without a version, never use `--yes`, and never run a
